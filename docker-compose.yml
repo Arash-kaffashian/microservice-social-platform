@@ -1,0 +1,31 @@
+services:
+  post_service:
+    build: ./services/post_service
+    container_name: post_service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - ./services/post_service/.env
+    volumes:
+      - ./services/post_service:/app
+    ports:
+      - "8001:8000"
+    depends_on:
+      - post_db
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://post_user:post_pass@post_db:5432/post_db
+
+  post_db:
+    image: postgres:15
+    container_name: post_db
+    restart: always
+    environment:
+      POSTGRES_DB: post_db
+      POSTGRES_USER: post_user
+      POSTGRES_PASSWORD: post_pass
+    volumes:
+      - post_db_data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+
+volumes:
+  post_db_data:
