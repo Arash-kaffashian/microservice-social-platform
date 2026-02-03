@@ -27,5 +27,34 @@ services:
     ports:
       - "5433:5432"
 
+  user_service:
+    build: ./services/user_service
+    container_name: user_service
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    env_file:
+      - ./services/user_service/.env
+    volumes:
+      - ./services/user_service:/app
+    ports:
+      - "8002:8000"
+    depends_on:
+      - user_db
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://user_user:user_pass@user_db:5432/user_db
+
+  user_db:
+    image: postgres:15
+    container_name: user_db
+    restart: always
+    environment:
+      POSTGRES_DB: user_db
+      POSTGRES_USER: user_user
+      POSTGRES_PASSWORD: user_pass
+    volumes:
+      - user_db_data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"
+
 volumes:
   post_db_data:
+  user_db_data:
