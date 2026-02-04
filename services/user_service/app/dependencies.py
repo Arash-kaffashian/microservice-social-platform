@@ -21,14 +21,6 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/token")
 # config internal token for internal api calls
 INTERNAL_TOKEN = config("INTERNAL_SERVICE_TOKEN")
 
-# internal access permission check
-def internal_service_required(x_internal_token: str = Header(...)):
-    if x_internal_token != INTERNAL_TOKEN:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Internal service access only"
-        )
-
 # login access permission check
 async def get_current_user(token: str = Depends(oauth2_bearer),db: Session = Depends(get_db)):
     try:
@@ -44,6 +36,14 @@ async def get_current_user(token: str = Depends(oauth2_bearer),db: Session = Dep
         raise HTTPException(status_code=401, detail="User not found")
 
     return user
+
+# internal access permission check
+def internal_service_required(x_internal_token: str = Header(...)):
+    if x_internal_token != INTERNAL_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Internal service access only"
+        )
 
 # verified access permission check
 def verified_user_required(user: User = Depends(get_current_user)):
