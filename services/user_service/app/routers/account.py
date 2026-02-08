@@ -8,11 +8,14 @@ from ..core import rate_limit
 from ..core.email import request_email_change, verify_email, send_verification_email
 
 
+""" account setting routers """
+
+
 # routers prefix configuration
 router = APIRouter(prefix="/settings", tags=["settings"])
 
 # change email API for changing email and resend verify link
-@router.post("/change-email", dependencies=[rate_limit.rate_limit(limit=1, window=259200),])
+@router.post("/change-email", dependencies=[rate_limit.rate_limit(limit=6, window=259200),])
 def change_email(
     data: schemas.ChangeEmailRequest,
     db: Session = Depends(database.get_db),
@@ -22,7 +25,7 @@ def change_email(
     return {"message": "Verification email sent"}
 
 # resend verify link to user email if its not verified
-@router.post("/resend-verify", dependencies=[rate_limit.rate_limit(limit=5, window=3600)])
+@router.post("/resend-verify", dependencies=[rate_limit.rate_limit(limit=6, window=3600)])
 def resend_verify_email(
     db: Session = Depends(database.get_db),
     current_user=Depends(dependencies.get_current_user)

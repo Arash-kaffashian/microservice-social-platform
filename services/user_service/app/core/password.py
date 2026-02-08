@@ -5,6 +5,9 @@ from ..core.security import hash_password, verify_password
 from ..models import User
 
 
+""" password definitions """
+
+
 # change password in personal dashboard or forgot password
 def change_password(db: Session, user_id: int, current_password: str, new_password: str):
     user = db.get(User, user_id)

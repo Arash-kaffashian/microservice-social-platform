@@ -6,12 +6,16 @@ from jose import jwt
 from ..models import User
 
 
+""" authentication and authorization definitions"""
+
+
 # secret key and algorithm configuration for preventing information hijack
 SECRET_KEY = config("SECRET_KEY")
 ALGORITHM = config("ALGORITHM")
 
 # encrypt passwords to hashed passwords
 bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
 
 # check user username and password for login
 def authenticate_user(username: str, password: str, db):
@@ -24,11 +28,13 @@ def authenticate_user(username: str, password: str, db):
     return user
 
 # create and return access token for login authorization
-def create_access_token(username: str, user_id: int, expire_delta: timedelta):
+def create_access_token(username: str, user_id: int, expire_delta: timedelta, role: str, is_email_verified: bool):
     # marking token owner and token expire time in payload
     payload = {
         "sub": username,
         "id": user_id,
+        "role": role,
+        "is_verified": is_email_verified,
         "exp": datetime.utcnow() + expire_delta
     }
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)

@@ -46,6 +46,25 @@ class UserResponse(BaseModel):
     image_url: Optional[str] = None
     created_at : datetime
     updated_at : datetime
+    role : str
+
+    model_config = ConfigDict(from_attributes=True)
+
+# user (output)
+class ProfileUserResponse(BaseModel):
+    id : int
+    nickname: str
+    is_email_verified: bool
+    pending_email : Optional[str] = None
+    image_url: Optional[str] = None
+
+    model_config = ConfigDict(from_attributes=True)
+
+# user (output)
+class PublicUserResponse(BaseModel):
+    id : int
+    nickname: str
+    image_url: Optional[str] = None
 
     model_config = ConfigDict(from_attributes=True)
 

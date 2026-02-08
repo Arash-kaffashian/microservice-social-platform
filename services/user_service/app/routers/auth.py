@@ -9,16 +9,20 @@ from ..core import rate_limit
 from ..core.security import authenticate_user, create_access_token
 
 
+""" auth routers """
+
+
 # routers prefix configuration
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 # config dependencies
 db_dependency = Annotated[Session, Depends(database.get_db)]
 
+
 # login API for authentication users and return token if it was valid
 @router.post(
     "/token",
-    dependencies=[rate_limit.rate_limit(limit=5, window=300)],
+    dependencies=[rate_limit.rate_limit(limit=20, window=300)],
     response_model=schemas.Token
 )
 async def login_for_access_token(
@@ -36,7 +40,9 @@ async def login_for_access_token(
     token = create_access_token(
         user.username,
         user.id,
-        timedelta(minutes=20)
+        timedelta(minutes=20),
+        user.role,
+        user.is_email_verified
     )
 
     return {

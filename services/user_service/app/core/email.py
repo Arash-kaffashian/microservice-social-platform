@@ -9,6 +9,9 @@ import uuid
 from ..models import User
 
 
+""" email definitions """
+
+
 # source email configuration
 EMAIL = config("EMAIL")
 APP_PASSWORD = config("APP_PASSWORD")
@@ -34,7 +37,6 @@ def request_email_change(db: Session, user_id: int, new_email: str):
 
     send_verification_email(new_email, token)
 
-
 # verification answered verify link
 def verify_email(db: Session, token: str):
     user = db.query(User).filter(User.email_verify_token == token).first()
@@ -54,8 +56,7 @@ def verify_email(db: Session, token: str):
 
 # sending verification email to targeted email from our source email
 def send_verification_email(to_email: str, token: str):
-    verify_link = f"http://localhost:8002/settings/verify?token={token}"
-
+    verify_link = f"http://localhost:8000/api/settings/verify/{token}"
     # email configuration
     msg = EmailMessage()
     msg["Subject"] = "Verify your email"

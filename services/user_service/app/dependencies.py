@@ -21,6 +21,7 @@ oauth2_bearer = OAuth2PasswordBearer(tokenUrl="/auth/token")
 # config internal token for internal api calls
 INTERNAL_TOKEN = config("INTERNAL_SERVICE_TOKEN")
 
+
 # login access permission check
 async def get_current_user(token: str = Depends(oauth2_bearer),db: Session = Depends(get_db)):
     try:

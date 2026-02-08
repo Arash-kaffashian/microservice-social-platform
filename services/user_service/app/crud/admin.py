@@ -5,6 +5,9 @@ from ..core.security import hash_password
 from ..models import User
 
 
+""" admins crud """
+
+
 # auto create or promote superadmin on start
 def create_superadmin(db: Session):
     superadmin_email = config("SUPERADMIN_EMAIL")
@@ -22,7 +25,7 @@ def create_superadmin(db: Session):
         )
         db.add(user)
         db.commit()
-        print("✅ SuperAdmin created")
+        print("SuperAdmin created")
     else:
         if user.role != "superadmin":
             user.role = "superadmin"
@@ -30,4 +33,4 @@ def create_superadmin(db: Session):
             user.hashed_password = hash_password(config("SUPERADMIN_PASSWORD"))
             user.is_email_verified = True
             db.commit()
-            print("🔁 SuperAdmin role restored")
+            print("SuperAdmin role restored")

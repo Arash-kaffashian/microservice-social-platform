@@ -1,6 +1,10 @@
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
-from decouple import config, Csv
+from decouple import config
+
+
+""" database config and settings """
+
 
 # config variables based on .env secure file to prevent information hijack
 DB_USER = config("POSTGRES_USER")
