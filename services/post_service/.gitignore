@@ -3,8 +3,14 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# C extensions
-*.so
+# database
+*.db
+
+# Virtual environment
+venv/
+env/
+.venv/
+.env
 
 # Python distribution / packaging
 build/
@@ -16,49 +22,7 @@ wheels/
 *.manifest
 *.spec
 
-# database
-*.db
-
-# Django / Web project
-*.log
-local_settings.py
-
-# Media and user uploads
-media/
-
-# Static files generated
-staticfiles/
-
-# Cache, temp and IDE / editor files
-*.tmp
-*.bak
-*.swp
-*.~
-*.~*
-
 # IDE / Editor configs
 .vscode/
 .idea/
 *.code-workspace
-
-# Testing / coverage / reports
-.coverage
-.coverage.*
-htmlcov/
-.pytest_cache/
-.tox/
-
-# OS-specific files
-.DS_Store
-._*
-Thumbs.db
-ehthumbs*.db
-Desktop.ini
-$RECYCLE.BIN/
-
-# Logs / runtime generated files
-*.pid
-
-# Other build artifacts
-*.tar.gz
-*.zip

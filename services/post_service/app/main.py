@@ -1,8 +1,11 @@
 from fastapi import FastAPI
+from fastapi.security import OAuth2PasswordBearer
 
 from . import models, database
 from .routers import posts
 
+
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 models.Base.metadata.create_all(bind=database.engine)
 
