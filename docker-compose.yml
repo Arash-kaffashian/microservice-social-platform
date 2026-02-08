@@ -55,6 +55,19 @@ services:
     ports:
       - "5434:5432"
 
+  gateway:
+    build: ./django_gateway
+    ports:
+      - "8000:8000"
+    environment:
+      USER_SERVICE_URL: http://user_service:8000
+      POST_SERVICE_URL: http://post_service:8000
+    volumes:
+      - ./django_gateway:/app
+    depends_on:
+      - user_service
+      - post_service
+
 volumes:
   post_db_data:
   user_db_data:
