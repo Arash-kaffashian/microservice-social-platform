@@ -1,0 +1,15 @@
+django
+djangorestframework==3.15.2
+requests
+python-dotenv
+python-decouple
+
+# Swagger
+drf-spectacular==0.29.0
+
+# jwt
+python-jose[crptography]
+passlib[bcrypt]==1.7.4
+bcrypt==3.2.2
+python-multipart
+PyJWT
