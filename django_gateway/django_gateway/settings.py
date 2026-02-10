@@ -114,3 +114,4 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 # other services urls setting
 USER_SERVICE_URL = "http://user_service:8000"
 POST_SERVICE_URL = "http://post_service:8000"
+COMMENT_SERVICE_URL = "http://comment_service:8000"

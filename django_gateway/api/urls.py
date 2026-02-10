@@ -3,7 +3,7 @@ from django.urls import path
 from . import views
 
 
-""" main URLs """
+""" Main URLs """
 
 
 urlpatterns = [
@@ -11,16 +11,25 @@ urlpatterns = [
     path("posts/", views.read_posts),
     path("posts/me", views.read_my_posts),
     path("posts/<int:post_id>", views.read_post),
-    path("create_post/", views.create_post),
-    path("update_post/<int:post_id>", views.update_post),
-    path("delete_post/<int:post_id>", views.delete_post),
+    path("posts/create/", views.create_post),
+    path("posts/update/<int:post_id>", views.update_post),
+    path("posts/delete/<int:post_id>", views.delete_post),
+
+    # comments urls
+    path("comments/<int:post_id>", views.read_comments),
+    path("comments/replies/<int:comment_id>", views.read_replies),
+    path("comments/create/", views.create_comment),
+    path("comments/reply/", views.create_reply),
+    path("comments/update/<int:comment_id>", views.update_comment),
+    path("comments/delete/<int:comment_id>", views.delete_comment),
+
 
     # users urls
     path("login/", views.login),
     path("users/", views.read_users),
     path("users/id=<int:user_id>", views.read_user),
-    path("profile/", views.profile),
-    path("register/", views.create_user),
+    path("users/profile/", views.profile),
+    path("users/register/", views.create_user),
     path("users/delete_profile", views.delete_profile),
     path("users/update_profile", views.update_profile),
 

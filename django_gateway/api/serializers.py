@@ -18,6 +18,21 @@ class UpdatePostSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
     content = serializers.CharField()
 
+# update_comment
+class UpdateCommentSerializer(serializers.Serializer):
+    content = serializers.CharField()
+
+# create_comment
+class CreateCommentSerializer(serializers.Serializer):
+    post_id = serializers.IntegerField()
+    content = serializers.CharField()
+
+# create_reply
+class CreateReplySerializer(serializers.Serializer):
+    post_id = serializers.IntegerField()
+    content = serializers.CharField()
+    parent_id = serializers.IntegerField()
+
 # update_user
 class UpdateUserSerializer(serializers.Serializer):
     nickname = serializers.CharField(max_length=50)

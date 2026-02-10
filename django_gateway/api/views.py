@@ -13,7 +13,10 @@ from .serializers import (
     CreateUserSerializer,
     IdSerializer,
     EmailSerializer,
-    UpdateUserSerializer)
+    UpdateUserSerializer,
+    CreateCommentSerializer,
+    CreateReplySerializer,
+    UpdateCommentSerializer)
 
 
 """ gateway views (Microservice API Mapping) """
@@ -22,6 +25,7 @@ from .serializers import (
 # services urls config
 USER_SERVICE_URL = config("USER_SERVICE_URL")
 POST_SERVICE_URL = config("POST_SERVICE_URL")
+COMMENT_SERVICE_URL = config("COMMENT_SERVICE_URL")
 
 # internal_service_token config
 INTERNAL_SERVICE_TOKEN = config("INTERNAL_SERVICE_TOKEN")
@@ -157,11 +161,12 @@ def create_post(request):
         response_data = {"detail": "Invalid response from post service", "text": resp.text}
     return Response(response_data, status=resp.status_code)
 
-# update one my posts by id
+# update one of my posts by id
 @extend_schema(request=UpdatePostSerializer,)
 @api_view(["PATCH"])
 def update_post(request, post_id):
     url = f"{POST_SERVICE_URL}/posts/{post_id}"
+
     token = request.session.get("access_token")
     if not token:
         return Response({"detail": "Not logged in"}, status=401)
@@ -188,6 +193,180 @@ def update_post(request, post_id):
 @api_view(["DELETE"])
 def delete_post(request, post_id):
     url = f"{POST_SERVICE_URL}/posts/{post_id}"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    resp = requests.delete(
+        url,
+        headers=headers
+    )
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from post service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+
+
+""" comments views """
+# get all comments
+@api_view(["GET"])
+def read_comments(request, post_id):
+    url = f"{COMMENT_SERVICE_URL}/comments/{post_id}"
+
+    try:
+        resp = requests.get(
+            url,
+            params=request.query_params,
+            timeout=5,
+        )
+    except requests.RequestException as e:
+        return Response(
+            {"error": "comment_service is unreachable", "detail": str(e)},
+            status=502,
+        )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from post service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# get one comment all replies
+@api_view(["GET"])
+def read_replies(request, comment_id):
+    url = f"{COMMENT_SERVICE_URL}/comments/replies/{comment_id}"
+
+    try:
+        resp = requests.get(
+            url,
+            params=request.query_params,
+            timeout=5,
+        )
+    except requests.RequestException as e:
+        return Response(
+            {"error": "comment_service is unreachable", "detail": str(e)},
+            status=502,
+        )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from post service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# create one comment for one post
+@extend_schema(request=CreateCommentSerializer,)
+@api_view(["POST"])
+def create_comment(request):
+    url = f"{COMMENT_SERVICE_URL}/comments/"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    serializer = CreateCommentSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    post_id = serializer.validated_data["post_id"]
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    resp = requests.get(
+        f"{POST_SERVICE_URL}/posts/{post_id}"
+    )
+
+    if resp.status_code == 404:
+        return Response({"detail": "post not found"}, status=404)
+
+    resp = requests.post(
+        url,
+        json=serializer.validated_data,
+        headers=headers
+    )
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from post service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# create one reply for one comment
+@extend_schema(request=CreateReplySerializer,)
+@api_view(["POST"])
+def create_reply(request):
+    url = f"{COMMENT_SERVICE_URL}/comments/reply"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    serializer = CreateReplySerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    post_id = serializer.validated_data["post_id"]
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    resp = requests.get(
+        f"{POST_SERVICE_URL}/posts/{post_id}"
+    )
+
+    if resp.status_code == 404:
+        return Response({"detail": "post not found"}, status=404)
+
+    resp = requests.post(
+        url,
+        json=serializer.validated_data,
+        headers=headers
+    )
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from comment service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# update one of my comments/replies by id
+@extend_schema(request=UpdateCommentSerializer,)
+@api_view(["PATCH"])
+def update_comment(request, comment_id):
+    url = f"{COMMENT_SERVICE_URL}/comments/{comment_id}"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    serializer = UpdateCommentSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    resp = requests.patch(
+        url,
+        json=serializer.validated_data,
+        headers=headers
+    )
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from post service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# delete one of my comments and its replies by id
+@api_view(["DELETE"])
+def delete_comment(request, comment_id):
+    url = f"{COMMENT_SERVICE_URL}/comments/delete/{comment_id}"
 
     token = request.session.get("access_token")
     if not token:
