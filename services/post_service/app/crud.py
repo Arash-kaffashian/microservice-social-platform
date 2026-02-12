@@ -61,3 +61,16 @@ def delete_post(db: Session, post_id: int) -> bool:
     db.commit()
     return None
 
+# delete one user posts by user_id and commit it to db
+def delete_user_posts(db: Session, user_id: int):
+    posts = db.query(models.Post).filter(models.Post.owner_id == user_id).all()
+
+    deleted_posts = []
+
+    for post in posts:
+        deleted_posts.append(post)
+        db.delete(post)
+
+    db.commit()
+
+    return deleted_posts

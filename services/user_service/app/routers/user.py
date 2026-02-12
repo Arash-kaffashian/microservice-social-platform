@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session
 from typing import List
 
 from .. import database, schemas
+from ..services import user_service
 from ..dependencies import admin_required, internal_service_required, get_current_user
 from ..core import rate_limit
 from ..crud import user as user_crud
@@ -80,17 +81,11 @@ def admin_update_user(
 
 # Delete own account
 @router.delete("/me", status_code=status.HTTP_200_OK)
-def delete_self(
+async def delete_self(
     current_user: schemas.UserResponse = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    user = user_crud.delete_user(db, current_user.id)
-    if not user:
-        raise HTTPException(
-            status_code=404,
-            detail="User not found"
-        )
-    return {"detail": "Your account has been deleted"}
+    return await user_service.delete_user(db, current_user.id)
 
 # Update own account
 @router.patch("/me", dependencies=[rate_limit.rate_limit(limit=20, window=60)], response_model=schemas.ProfileUserResponse)

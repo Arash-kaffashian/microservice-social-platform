@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter, status
 from sqlalchemy.orm import Session
 
 from .. import schemas, database, dependencies
+from  ..events import consumer
 from ..crud import comments
 
 
@@ -38,7 +39,7 @@ def create_comment(
         user=Depends(dependencies.verified_user_required)
 ):
     owner_id = user["user_id"]
-    return comments.create_reply_comment(db, comment, owner_id)
+    return comments.create_comment(db, comment, owner_id)
 
 # update one comment/reply by id
 @router.patch("/comments/{comment_id}", response_model=schemas.CommentResponse)
@@ -52,7 +53,7 @@ def update_comment(
     return comments.update_comment(db, comment_id, comment, owner_id)
 
 # delete one comment and its replies by id
-@router.delete("/comments/delete/{comment_id}", status_code=status.HTTP_200_OK)
+@router.delete("/comments/delete/id={comment_id}", status_code=status.HTTP_200_OK)
 def delete_comment(
         comment_id:int,
         db: Session = Depends(database.get_db),
@@ -60,3 +61,14 @@ def delete_comment(
 ):
     owner_id = user["user_id"]
     return comments.delete_my_comment(db, comment_id, owner_id)
+
+# delete one comment and its replies by post_id
+@router.delete(
+    "/comments/delete/post={post_id}",
+    dependencies=[Depends(dependencies.internal_service_required)],
+    status_code=status.HTTP_200_OK)
+async def delete_post_comments(
+        post_id:int,
+        db: Session = Depends(database.get_db),
+):
+    return await consumer.delete_post_comments(db, post_id)

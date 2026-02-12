@@ -80,3 +80,11 @@ def delete_my_comment(db: Session, comment_id: int, owner_id:int):
     db.delete(db_user)
     db.commit()
     return {"detail": "Your comment has been deleted"}
+
+# delete one post all comments and its replies by post_id
+def delete_post_comments(db: Session, post_id: int):
+    db.query(models.Comment)\
+      .filter(models.Comment.post_id == post_id)\
+      .delete(synchronize_session=False)
+
+    db.commit()

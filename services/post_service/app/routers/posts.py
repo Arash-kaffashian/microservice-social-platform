@@ -2,6 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter, status
 from sqlalchemy.orm import Session
 
 from .. import schemas, crud, database, dependencies
+from ..services import post_service
 
 
 """ posts routers """
@@ -29,7 +30,7 @@ def read_post(post_id: int, db: Session = Depends(database.get_db)):
     return db_post
 
 # create my post
-@router.post("/posts", dependencies=[Depends(dependencies.get_current_user)], response_model=schemas.PostResponse)
+@router.post("/posts", dependencies=[Depends(dependencies.get_current_user), Depends(dependencies.verified_user_required)], response_model=schemas.PostResponse)
 def create_post(post: schemas.PostCreate, db: Session = Depends(database.get_db), user=Depends(dependencies.get_current_user)):
     owner_id = user["user_id"]
     return crud.create_post(db, post, owner_id)
@@ -47,22 +48,20 @@ def update_post(patch: schemas.PostUpdate, post_id: int, db : Session = Depends(
 
 # delete one of my posts by id
 @router.delete("/posts/{post_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_post(post_id: int, db : Session = Depends(database.get_db), user=Depends(dependencies.get_current_user)):
+async def delete_post(post_id: int, db : Session = Depends(database.get_db), user=Depends(dependencies.get_current_user)):
     post = crud.get_post(db, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="post not found")
     if post.owner_id != user["user_id"]:
         raise HTTPException(status_code=403, detail="only post owner can delete that")
-    db_post = crud.delete_post(db, post_id)
-    return db_post
+    return await post_service.delete_post(db, post_id)
 
 # delete one post by id (admin and superadmin only)
 @router.delete("/admin/posts/{post_id}", status_code=status.HTTP_200_OK)
-def delete_post_by_admin(post_id: int, db : Session = Depends(database.get_db), user=Depends(dependencies.get_current_user)):
+async def delete_post_by_admin(post_id: int, db : Session = Depends(database.get_db), user=Depends(dependencies.get_current_user)):
     post = crud.get_post(db, post_id)
     if not post:
         raise HTTPException(status_code=404, detail="post not found")
     if user["role"] not in ("admin", "superadmin"):
         raise HTTPException(status_code=403, detail="admin access required")
-    db_post = crud.delete_post(db, post_id)
-    return db_post
+    return await post_service.delete_post(db, post_id)
