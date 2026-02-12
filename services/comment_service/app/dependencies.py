@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Header, Depends
+from fastapi import HTTPException, Header, Depends, status
 from jose import JWTError, jwt
 from decouple import config
 
@@ -39,3 +39,11 @@ def verified_user_required(user = Depends(get_current_user)):
             detail="Email not verified"
         )
     return user
+
+# internal access permission check
+def internal_service_required(x_internal_token: str = Header(...)):
+    if x_internal_token != INTERNAL_TOKEN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Internal service access only"
+        )
