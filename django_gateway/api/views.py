@@ -366,7 +366,7 @@ def update_comment(request, comment_id):
 # delete one of my comments and its replies by id
 @api_view(["DELETE"])
 def delete_comment(request, comment_id):
-    url = f"{COMMENT_SERVICE_URL}/comments/delete/{comment_id}"
+    url = f"{COMMENT_SERVICE_URL}/comments/delete/id={comment_id}"
 
     token = request.session.get("access_token")
     if not token:

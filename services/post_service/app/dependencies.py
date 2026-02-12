@@ -13,6 +13,7 @@ ALGORITHM = config("ALGORITHM")
 # config internal token for internal api calls
 INTERNAL_TOKEN = config("INTERNAL_SERVICE_TOKEN")
 
+
 # decode jwt token and return payload
 def get_current_user(authorization: str = Header(...)):
     if not authorization.startswith("Bearer "):
