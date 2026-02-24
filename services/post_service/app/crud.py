@@ -1,3 +1,4 @@
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
 from . import models, schemas
@@ -30,8 +31,6 @@ def create_post(db: Session, post: schemas.PostCreate, user:int):
         title=post.title,
         content=post.content,
         owner_id=user,
-        image_url=post.image_url,
-        video_url=post.video_url,
     )
     db.add(db_post)
     db.commit()
@@ -53,13 +52,13 @@ def update_post(db: Session, post_id: int, patch: schemas.PostUpdate):
     return db_post
 
 # delete one post by id and commit it to db
-def delete_post(db: Session, post_id: int) -> bool:
+def delete_post(db: Session, post_id: int):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()
     if not db_post:
-        return False
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="post not found")
     db.delete(db_post)
     db.commit()
-    return None
+    return "post successfully deleted"
 
 # delete one user posts by user_id and commit it to db
 def delete_user_posts(db: Session, user_id: int):

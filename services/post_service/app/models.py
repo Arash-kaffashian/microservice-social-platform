@@ -14,6 +14,4 @@ class Post(Base):
     title = Column(String(100), nullable=False)
     content = Column(Text, nullable=False)
     owner_id = Column(Integer)
-    image_url = Column(String(255), nullable=True)
-    video_url = Column(String(255), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
