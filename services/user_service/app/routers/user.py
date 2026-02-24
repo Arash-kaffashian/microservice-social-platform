@@ -42,12 +42,13 @@ def get_profile(db: Session = Depends(database.get_db), current_user: schemas.Pr
     return user_crud.get_user_by_id(db, current_user.id)
 
 # create user
-@router.post("/", dependencies=[rate_limit.rate_limit(limit=3, window=3600)], status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
+@router.post("/", dependencies=[rate_limit.rate_limit(limit=30, window=3600)], status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
 async def create_user(user: schemas.CreateUserRequest,db: Session = Depends(database.get_db)):
     db_user = user_crud.get_user_by_username(db, user.username)
     if db_user:
         raise HTTPException(status_code=400, detail="this user is already exist")
-    return user_crud.create_user(db, user)
+    new_user = await user_service.create_user(db, user)
+    return new_user
 
 # delete user by id
 @router.delete("/admin/users/{user_id}", dependencies=[rate_limit.rate_limit(limit=20, window=60)], status_code=status.HTTP_200_OK)
