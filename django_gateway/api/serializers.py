@@ -12,6 +12,10 @@ class LoginSerializer(serializers.Serializer):
 class CreatePostSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=255)
     content = serializers.CharField()
+    files = serializers.ListField(
+        child=serializers.FileField(),
+        required=False
+    )
 
 # update_post
 class UpdatePostSerializer(serializers.Serializer):
@@ -33,6 +37,10 @@ class CreateReplySerializer(serializers.Serializer):
     content = serializers.CharField()
     parent_id = serializers.IntegerField()
 
+# update_media
+class UpdateAvatarSerializer(serializers.Serializer):
+    file = serializers.FileField()
+
 # update_user
 class UpdateUserSerializer(serializers.Serializer):
     nickname = serializers.CharField(max_length=50)
@@ -44,7 +52,6 @@ class CreateUserSerializer(serializers.Serializer):
     password = serializers.CharField(style={'input_type': 'password'})
     email = serializers.EmailField(max_length=100)
     nickname = serializers.CharField(max_length=50)
-    image_url = serializers.CharField(max_length=255)
 
 # id
 class IdSerializer(serializers.Serializer):

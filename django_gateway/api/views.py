@@ -1,5 +1,6 @@
 from django.conf import settings
-from rest_framework.decorators import api_view, permission_classes
+from rest_framework.decorators import api_view, permission_classes, parser_classes
+from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from drf_spectacular.utils import extend_schema
@@ -16,7 +17,8 @@ from .serializers import (
     UpdateUserSerializer,
     CreateCommentSerializer,
     CreateReplySerializer,
-    UpdateCommentSerializer)
+    UpdateCommentSerializer,
+    UpdateAvatarSerializer)
 
 
 """ gateway views (Microservice API Mapping) """
@@ -26,6 +28,7 @@ from .serializers import (
 USER_SERVICE_URL = config("USER_SERVICE_URL")
 POST_SERVICE_URL = config("POST_SERVICE_URL")
 COMMENT_SERVICE_URL = config("COMMENT_SERVICE_URL")
+MEDIA_SERVICE_URL = config("MEDIA_SERVICE_URL")
 
 # internal_service_token config
 INTERNAL_SERVICE_TOKEN = config("INTERNAL_SERVICE_TOKEN")
@@ -134,32 +137,82 @@ def read_post(request, post_id):
     return Response(resp.json(), status=resp.status_code)
 
 # create one post
-@extend_schema(request=UpdatePostSerializer,)
+@extend_schema(
+    request={
+        'multipart/form-data': {
+            'type': 'object',
+            'properties': {
+                'title': {'type': 'string'},
+                'content': {'type': 'string'},
+                'files': {
+                    'type': 'array',
+                    'items': {
+                        'type': 'string',
+                        'format': 'binary'
+                    }
+                }
+            }
+        }
+    }
+)
+@parser_classes([MultiPartParser, FormParser])
 @api_view(["POST"])
 def create_post(request):
-    url = f"{POST_SERVICE_URL}/posts/"
+    url = f"{POST_SERVICE_URL}/posts"
 
     token = request.session.get("access_token")
     if not token:
         return Response({"detail": "Not logged in"}, status=401)
 
-    serializer = UpdatePostSerializer(data=request.data)
+    serializer = CreatePostSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
     headers = {
         "Authorization": f"Bearer {token}"
     }
 
+    files = request.FILES.getlist("files")
+
+    # create_post_record
     resp = requests.post(
         url,
-        json=serializer.validated_data,
+        json={
+            "title": serializer.validated_data["title"],
+            "content": serializer.validated_data["content"],
+        },
         headers=headers
     )
-    try:
-        response_data = resp.json()
-    except ValueError:  # JSONDecodeError
-        response_data = {"detail": "Invalid response from post service", "text": resp.text}
-    return Response(response_data, status=resp.status_code)
+
+    if resp.status_code != 200:
+        return Response(resp.json(), status=resp.status_code)
+
+    post_data = resp.json()
+    post_id = post_data["id"]
+    print(post_id)
+
+    # save and create record of medias
+    files_payload = []
+
+    for file in files:
+        files_payload.append(
+            ("files", (file.name, file, file.content_type))
+        )
+
+    media_response = requests.post(
+        f"{MEDIA_SERVICE_URL}/files/upload",
+        params={"post_id": post_id},
+        files=files_payload,
+        headers={"Internal-Token": INTERNAL_SERVICE_TOKEN, "Authorization": f"Bearer {token}"}
+    )
+
+    if media_response.status_code != 200:
+        requests.delete(
+            f"{POST_SERVICE_URL}/posts/{post_id}",
+            headers = headers
+        )
+        return Response({"error": "Media upload failed"}, status=500)
+
+    return Response(post_data, status=201)
 
 # update one of my posts by id
 @extend_schema(request=UpdatePostSerializer,)
@@ -171,7 +224,7 @@ def update_post(request, post_id):
     if not token:
         return Response({"detail": "Not logged in"}, status=401)
 
-    serializer = CreatePostSerializer(data=request.data)
+    serializer = UpdatePostSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
     headers = {
@@ -384,6 +437,207 @@ def delete_comment(request, comment_id):
         response_data = resp.json()
     except ValueError:  # JSONDecodeError
         response_data = {"detail": "Invalid response from post service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+
+
+""" avatar views """
+# get avatar
+@api_view(["GET"])
+def read_avatar(request, owner_id):
+    url = f"{MEDIA_SERVICE_URL}/avatar/id={owner_id}"
+
+    headers = {
+        "X-Internal-Token": INTERNAL_SERVICE_TOKEN
+    }
+
+    resp = requests.get(
+        url,
+        headers=headers,
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from media service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# set one avatar record and user.avatar to default avatar
+@api_view(["PUT"])
+def set_default(request):
+    url = f"{MEDIA_SERVICE_URL}/avatar/set_default"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    resp = requests.put(
+        url,
+        headers=headers,
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from media service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# change avatar
+@extend_schema(request={"multipart/form-data": {
+            "type": "object",
+            "properties": {
+                "file": {
+                    "type": "string",
+                    "format": "binary"
+                }
+            },
+            "required": ["file"]
+        }})
+@api_view(["PUT"])
+@parser_classes([MultiPartParser, FormParser])
+def update_avatar(request):
+    url = f"{MEDIA_SERVICE_URL}/avatar"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    serializer = UpdateAvatarSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    file_obj = request.FILES.get("file")
+
+    resp = requests.put(
+        url,
+        headers=headers,
+        files={
+            "file": (
+                file_obj.name,
+                file_obj,
+                file_obj.content_type
+            )
+        }
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from media service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+
+
+""" files views """
+# get one post medias
+@api_view(["GET"])
+def read_medias(request, post_id):
+    url = f"{MEDIA_SERVICE_URL}/files/post={post_id}"
+
+    resp = requests.get(
+        url,
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from media service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# get one media
+@api_view(["GET"])
+def read_media(request, media_id):
+    url = f"{MEDIA_SERVICE_URL}/files/media={media_id}"
+
+
+    resp = requests.get(
+        url,
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from media service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# change one media
+@extend_schema(request={"multipart/form-data": {
+            "type": "object",
+            "properties": {
+                "file": {
+                    "type": "string",
+                    "format": "binary"
+                }
+            },
+            "required": ["file"]
+        }})
+@parser_classes([MultiPartParser, FormParser])
+@api_view(["PATCH"])
+def update_media(request, media_id):
+    url = f"{MEDIA_SERVICE_URL}/files/media={media_id}"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    serializer = UpdateAvatarSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Internal-Token": INTERNAL_SERVICE_TOKEN
+    }
+
+    file_obj = request.FILES.get("file")
+
+    resp = requests.patch(
+        url,
+        headers=headers,
+        files={
+            "file": (
+                file_obj.name,
+                file_obj,
+                file_obj.content_type
+            )
+        }
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from media service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# delete one media (hard delete)
+@api_view(["DELETE"])
+def delete_media(request, media_id):
+    url = f"{MEDIA_SERVICE_URL}/files/media={media_id}"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Internal-Token": INTERNAL_SERVICE_TOKEN
+    }
+
+    resp = requests.delete(
+        url,
+        headers=headers,
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from media service", "text": resp.text}
     return Response(response_data, status=resp.status_code)
 
 

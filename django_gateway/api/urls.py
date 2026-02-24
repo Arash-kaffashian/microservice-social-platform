@@ -23,6 +23,16 @@ urlpatterns = [
     path("comments/update/<int:comment_id>", views.update_comment),
     path("comments/delete/<int:comment_id>", views.delete_comment),
 
+    # avatar urls
+    path("avatar/id=<owner_id>", views.read_avatar),
+    path("avatar/set_default", views.set_default),
+    path("avatar/me", views.update_avatar),
+
+    # files urls
+    path("files/post=<post_id>", views.read_medias),
+    path("files/media=<media_id>", views.read_media),
+    path("files/update/media=<media_id>", views.update_media),
+    path("files/delete/media=<media_id>", views.delete_media),
 
     # users urls
     path("login/", views.login),
