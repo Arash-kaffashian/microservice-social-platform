@@ -38,18 +38,21 @@ def create_user(db: Session, user: schemas.CreateUserRequest):
         hashed_password = bcrypt_context.hash(user.password),
         nickname=user.nickname,
         email=user.email,
-        image_url = user.image_url
+        image_url = "default-avatar.jpg"
     )
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
 
     # send email verification to user email
-    request_email_change(
-        db=db,
-        user_id=db_user.id,
-        new_email=db_user.email
-    )
+    try:
+        request_email_change(
+            db=db,
+            user_id=db_user.id,
+            new_email=db_user.email
+        )
+    except Exception as e:
+        print("Email sending failed:", e)
 
     return db_user
 

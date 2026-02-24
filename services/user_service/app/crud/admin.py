@@ -21,6 +21,7 @@ def create_superadmin(db: Session):
             nickname="superadmin",
             hashed_password= hash_password(config("SUPERADMIN_PASSWORD")),
             role="superadmin",
+            image_url="default-avatar.jpg",
             is_email_verified=True
         )
         db.add(user)
@@ -34,3 +35,5 @@ def create_superadmin(db: Session):
             user.is_email_verified = True
             db.commit()
             print("SuperAdmin role restored")
+
+    return user

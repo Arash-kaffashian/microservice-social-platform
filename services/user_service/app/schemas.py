@@ -10,7 +10,6 @@ class CreateUserRequest(BaseModel):
     password: str
     email: EmailStr
     nickname: str
-    image_url: Optional[str] = None
 
 # update user(input)
 class UpdateUserRequest(BaseModel):
