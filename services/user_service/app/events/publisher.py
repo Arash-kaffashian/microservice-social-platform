@@ -16,3 +16,13 @@ async def publish_user_deleted(user_id: int):
             "user_id": str(user_id),
         }
     )
+
+# publish redis stream user_created events
+async def publish_user_created(user_id: int):
+    await r.xadd(
+        "user_events",
+        {
+            "event": "user_created",
+            "user_id": str(user_id),
+        }
+    )
