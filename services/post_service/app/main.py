@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from fastapi.security import OAuth2PasswordBearer
-import redis.asyncio as redis
+from redis.exceptions import ResponseError
 from decouple import config
+import redis.asyncio as redis
 import asyncio
 
 from .events.consumer import consume_user_deleted
@@ -20,11 +21,8 @@ app.include_router(posts.router)
 
 r = redis.Redis(host=config("HOST"), port=config("PORT"), decode_responses=True)
 
-
-# post_service startup for Ensure the Redis Stream consumer group exists before starting the consumer
-@app.on_event("startup")
-async def startup_event():
-
+# Ensure the Redis Stream consumer group exists before starting the consumer
+async def ensure_group():
     try:
         await r.xgroup_create(
             name="user_events",
@@ -32,7 +30,17 @@ async def startup_event():
             id="0",
             mkstream=True
         )
-    except Exception:
-        pass
+        print("Consumer group created!")
+    except ResponseError as e:
+        if "BUSYGROUP" in str(e):
+            print("Consumer group already exists")
+        else:
+            raise
 
-    await asyncio.create_task(consume_user_deleted())
+@app.on_event("startup")
+async def startup_event():
+    # create Redis stream and consumer group
+    await ensure_group()
+
+    # start consumer in background
+    asyncio.create_task(consume_user_deleted())

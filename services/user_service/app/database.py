@@ -6,20 +6,21 @@ from decouple import config
 """ database config and settings """
 
 
-# config variables based on .env secure file to prevent information hijack
-DB_USER = config("POSTGRES_USER")
-DB_PASSWORD = config("POSTGRES_PASSWORD")
-DB_HOST = config("POSTGRES_HOST")
-DB_PORT = config("POSTGRES_PORT", cast=int)
-DB_NAME = config("POSTGRES_DB")
+DATABASE_URL = config("DATABASE_URL")
 
-# connect sqlalchemy to postgresql real port
-SQLALCHEMY_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+engine = create_engine(
+    DATABASE_URL,
+    pool_pre_ping=True
+)
 
-# sqlalchemy engine and session configuration
-engine = create_engine(SQLALCHEMY_DATABASE_URL)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+SessionLocal = sessionmaker(
+    autocommit=False,
+    autoflush=False,
+    bind=engine
+)
+
 Base = declarative_base()
+
 
 # FastAPI dependency
 def get_db():

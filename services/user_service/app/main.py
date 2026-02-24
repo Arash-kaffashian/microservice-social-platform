@@ -1,10 +1,15 @@
 from fastapi import FastAPI
+from redis.exceptions import ResponseError
+from decouple import config
+import redis.asyncio as redis
+import asyncio
 
 from .middleware.rate_limit import RateLimitMiddleware
+from .events.consumer import consume_avatar_updated
 from . import models, database
 from .routers import auth, user, account, admin
 from .database import SessionLocal
-from .crud.admin import create_superadmin
+from .services.admin_service import create_superadmin
 
 
 # sqlalchemy engine setting
@@ -30,11 +35,37 @@ def get_db():
     finally:
         db.close()
 
-# superadmin create or promote on startup
+
+r = redis.Redis(host=config("HOST"), port=config("PORT"), decode_responses=True)
+
+# Ensure the Redis Stream consumer group exists before starting the consumer
+async def ensure_group():
+    try:
+        await r.xgroup_create(
+            name="media_events",
+            groupname="user_group",
+            id="0",
+            mkstream=True
+        )
+        print("Consumer group created!")
+    except ResponseError as e:
+        if "BUSYGROUP" in str(e):
+            print("Consumer group already exists")
+        else:
+            raise
+
+# superadmin create or promote on startup / redis group Ensure
 @app.on_event("startup")
-def startup_event():
+async def startup_event():
+    # Create superadmin
     db = SessionLocal()
     try:
-        create_superadmin(db)
+        await create_superadmin(db)
     finally:
         db.close()
+
+    # Ensure Redis group exists
+    await ensure_group()
+
+    # Start consumer in background
+    asyncio.create_task(consume_avatar_updated())

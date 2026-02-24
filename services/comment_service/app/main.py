@@ -44,8 +44,8 @@ async def ensure_group():
 
 @app.on_event("startup")
 async def startup_event():
-    # create redis group
+    # create Redis stream and consumer group
     await ensure_group()
 
-    # start consumer
-    await asyncio.create_task(consume_post_deleted())
+    # start consumer in background
+    asyncio.create_task(consume_post_deleted())
