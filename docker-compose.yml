@@ -2,7 +2,7 @@ services:
   post_service:
     build: ./services/post_service
     container_name: post_service
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: ["./wait-for-it.sh", "post_db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     env_file:
       - ./services/post_service/.env
     volumes:
@@ -11,8 +11,14 @@ services:
       - "8001:8000"
     depends_on:
       - post_db
+      - redis
     environment:
       - DATABASE_URL=postgresql+psycopg2://post_user:post_pass@post_db:5432/post_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/openapi.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   post_db:
     image: postgres:15
@@ -26,12 +32,16 @@ services:
       - post_db_data:/var/lib/postgresql/data
     ports:
       - "5433:5432"
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U post_user -d post_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   user_service:
     build: ./services/user_service
     container_name: user_service
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: ["./wait-for-it.sh", "user_db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     env_file:
       - ./services/user_service/.env
     volumes:
@@ -40,8 +50,14 @@ services:
       - "8002:8000"
     depends_on:
       - user_db
+      - redis
     environment:
       - DATABASE_URL=postgresql+psycopg2://user_user:user_pass@user_db:5432/user_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/openapi.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   user_db:
     image: postgres:15
@@ -55,12 +71,16 @@ services:
       - user_db_data:/var/lib/postgresql/data
     ports:
       - "5434:5432"
-
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user_user -d user_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   comment_service:
     build: ./services/comment_service
     container_name: comment_service
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: ["./wait-for-it.sh", "comment_db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
     env_file:
       - ./services/comment_service/.env
     volumes:
@@ -69,8 +89,14 @@ services:
       - "8003:8000"
     depends_on:
       - comment_db
+      - redis
     environment:
       - DATABASE_URL=postgresql+psycopg2://comment_user:comment_pass@comment_db:5432/comment_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/openapi.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   comment_db:
     image: postgres:15
@@ -84,7 +110,50 @@ services:
       - comment_db_data:/var/lib/postgresql/data
     ports:
       - "5435:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U comment_user -d comment_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
+  media_service:
+    build: ./services/media_service
+    container_name: media_service
+    command: ["./wait-for-it.sh", "media_db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    env_file:
+      - ./services/media_service/.env
+    volumes:
+      - ./services/media_service:/app
+    ports:
+      - "8004:8000"
+    depends_on:
+      - media_db
+      - redis
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://media_user:media_pass@media_db:5432/media_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/openapi.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  media_db:
+    image: postgres:15
+    container_name: media_db
+    restart: always
+    environment:
+      POSTGRES_DB: media_db
+      POSTGRES_USER: media_user
+      POSTGRES_PASSWORD: media_pass
+    volumes:
+      - media_db_data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U media_user -d media_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   gateway:
     build: ./django_gateway
@@ -94,18 +163,32 @@ services:
       USER_SERVICE_URL: http://user_service:8000
       POST_SERVICE_URL: http://post_service:8000
       COMMENT_SERVICE_URL: http://comment_service:8000
+      MEDIA_SERVICE_URL: http://media_service:8000
     volumes:
       - ./django_gateway:/app
     depends_on:
       - user_service
       - post_service
+      - media_service
+      - redis
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:7
     ports:
       - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
 volumes:
   post_db_data:
   user_db_data:
   comment_db_data:
+  media_db_data:
