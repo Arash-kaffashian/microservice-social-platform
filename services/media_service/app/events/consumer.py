@@ -19,7 +19,7 @@ async def consume_user_events():
             groupname="media_group",
             consumername="media_user_consumer",
             streams={"user_events": ">"},
-            block=5000
+            block=0
         )
 
         for stream, messages in events:
