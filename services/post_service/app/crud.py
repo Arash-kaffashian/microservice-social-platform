@@ -51,6 +51,13 @@ def update_post(db: Session, post_id: int, patch: schemas.PostUpdate):
     db.refresh(db_post)
     return db_post
 
+# update user posts nickname
+def update_posts_nickname(db: Session, user_id: int, new_nickname: str):
+    db_post = db.query(models.Post).filter(models.Post.owner_id == user_id).update({"owner_nickname": new_nickname},synchronize_session="fetch")
+
+    db.commit()
+    return db_post
+
 # delete one post by id and commit it to db
 def delete_post(db: Session, post_id: int):
     db_post = db.query(models.Post).filter(models.Post.id == post_id).first()

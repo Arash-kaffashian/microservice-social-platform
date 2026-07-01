@@ -6,7 +6,7 @@ from fastapi_swagger import patch_fastapi
 import redis.asyncio as redis
 import asyncio
 
-from .events.consumer import consume_user_deleted
+from .events.consumer import consume_user_events, consume_comment_events
 from . import models, database
 from .routers import posts
 
@@ -15,7 +15,6 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 
 models.Base.metadata.create_all(bind=database.engine)
 
-app = FastAPI(title="Post Service")
 app = FastAPI(title="Post Service",docs_url=None,swagger_ui_oauth2_redirect_url=None)
 patch_fastapi(app)
 
@@ -25,25 +24,29 @@ app.include_router(posts.router)
 r = redis.Redis(host=config("HOST"), port=config("PORT"), decode_responses=True)
 
 # Ensure the Redis Stream consumer group exists before starting the consumer
-async def ensure_group():
-    try:
-        await r.xgroup_create(
-            name="user_events",
-            groupname="post_group",
-            id="0",
-            mkstream=True
-        )
-        print("Consumer group created!")
-    except ResponseError as e:
-        if "BUSYGROUP" in str(e):
-            print("Consumer group already exists")
-        else:
-            raise
+async def ensure_groups():
+    streams = ["user_events", "media_events", "post_events", "comment_events"]
+
+    for stream in streams:
+        try:
+            await r.xgroup_create(
+                name=stream,
+                groupname="post_group",
+                id="0",
+                mkstream=True
+            )
+            print(f"Consumer group created for {stream}")
+        except ResponseError as e:
+            if "BUSYGROUP" in str(e):
+                print(f"Consumer group already exists for {stream}")
+            else:
+                raise
 
 @app.on_event("startup")
 async def startup_event():
     # create Redis stream and consumer group
-    await ensure_group()
+    await ensure_groups()
 
     # start consumer in background
-    asyncio.create_task(consume_user_deleted())
+    asyncio.create_task(consume_user_events())
+    asyncio.create_task(consume_comment_events())
