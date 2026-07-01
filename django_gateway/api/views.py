@@ -18,6 +18,7 @@ USER_SERVICE_URL = config("USER_SERVICE_URL")
 POST_SERVICE_URL = config("POST_SERVICE_URL")
 COMMENT_SERVICE_URL = config("COMMENT_SERVICE_URL")
 MEDIA_SERVICE_URL = config("MEDIA_SERVICE_URL")
+NOTIFICATIONS_SERVICE_URL = config("NOTIFICATIONS_SERVICE_URL")
 
 # internal_service_token config
 INTERNAL_SERVICE_TOKEN = config("INTERNAL_SERVICE_TOKEN")
@@ -443,6 +444,67 @@ def delete_comment(request, comment_id):
     return Response(response_data, status=resp.status_code)
 
 
+""" notification views """
+# get my notifications
+@api_view(["GET"])
+def read_my_notifications(request):
+    url = f"{settings.NOTIFICATIONS_SERVICE}/notifications/"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    params = {
+        "skip": "0",
+        "limit": "10"
+    }
+
+    resp = requests.get(
+        url,
+        params=params,
+        headers=headers,
+        timeout=5,
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from notification service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
+
+# get one of my notification
+@api_view(["GET"])
+def read_notification(request, notification_id):
+    url = f"{settings.NOTIFICATIONS_SERVICE}/notifications/{notification_id}/"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    try:
+        resp = requests.get(
+            url,
+            headers=headers,
+            timeout=5,
+        )
+    except requests.RequestException as e:
+        return Response(
+            {"error": "notification_service is unreachable", "detail": str(e)},
+            status=502,
+        )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from notification service", "text": resp.text}
     return Response(response_data, status=resp.status_code)
 
 
@@ -942,6 +1004,39 @@ def verify_email(request, token):
 
 
 
+""" admin panel urls """
+# get admin notifications
+@api_view(["GET"])
+def read_admin_notifications(request):
+    url = f"{settings.NOTIFICATIONS_SERVICE}/admin/notifications/"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    params = {
+        "skip": "0",
+        "limit": "10"
+    }
+
+    resp = requests.get(
+        url,
+        params=params,
+        headers=headers,
+        timeout=5,
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:
+        response_data = {"detail": "Invalid response from notification service", "text": resp.text}
+
+    return Response(response_data, status=resp.status_code)
+
 # promote to admin by id (superadmin only)
 @extend_schema(request=serializers.IdSerializer)
 @api_view(["POST"])
@@ -971,6 +1066,35 @@ def create_admin(request):
     if resp.status_code != 200:
         return Response(resp.json(), status=resp.status_code)
     return Response({"message": "user promoted to admin"})
+
+# create notification by admin
+@extend_schema(request=serializers.CreateNotificationSerializer,)
+@api_view(["POST"])
+def create_notification(request):
+    url = f"{NOTIFICATIONS_SERVICE_URL}/admin/notifications/"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    serializer = serializers.CreateNotificationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    resp = requests.post(
+        url,
+        json=serializer.validated_data,
+        headers=headers,
+        timeout=5
+    )
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from notification service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)
 
 # admin delete_user by id (admin and superadmin only)
 @api_view(["DELETE"])
@@ -1029,6 +1153,33 @@ def admin_update_user(request, user_id):
         response_data = {"detail": "Invalid response from user service", "text": resp.text}
     return Response(response_data, status=resp.status_code)
 
+# admin update_user by id (admin and superadmin only)
+@extend_schema(request=serializers.UpdateNotificationSerializer,)
+@api_view(["PATCH"])
+def admin_update_notification(request, notification_id):
+    url = f"{NOTIFICATIONS_SERVICE_URL}/admin/notifications/{notification_id}/"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    serializer = serializers.UpdateNotificationSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    resp = requests.patch(
+        url,
+        json=serializer.validated_data,
+        headers=headers,
+        timeout=5
+    )
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from notification service", "text": resp.text}
     return Response(response_data, status=resp.status_code)
 
 # admin delete_post by id (admin and superadmin only)
@@ -1059,3 +1210,27 @@ def admin_delete_post(request, post_id):
         response_data = {"post has been deleted"}
     return Response(response_data, status=resp.status_code)
 
+# admin delete_notification by id (admin and superadmin only)
+@api_view(["DELETE"])
+def admin_delete_notification(request, notification_id):
+    url = f"{NOTIFICATIONS_SERVICE_URL}/admin/notifications/{notification_id}/"
+
+    token = request.session.get("access_token")
+    if not token:
+        return Response({"detail": "Not logged in"}, status=401)
+
+    headers = {
+        "Authorization": f"Bearer {token}"
+    }
+
+    resp = requests.delete(
+        url,
+        headers=headers,
+        timeout=5
+    )
+
+    try:
+        response_data = resp.json()
+    except ValueError:  # JSONDecodeError
+        response_data = {"detail": "Invalid response from notification service", "text": resp.text}
+    return Response(response_data, status=resp.status_code)

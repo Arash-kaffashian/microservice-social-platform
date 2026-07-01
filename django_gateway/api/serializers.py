@@ -37,6 +37,13 @@ class CreateReplySerializer(serializers.Serializer):
     content = serializers.CharField(max_length=255)
     parent_id = serializers.IntegerField()
 
+# create_notification
+class CreateNotificationSerializer(serializers.Serializer):
+    recipient_id = serializers.IntegerField(required=False, allow_null=True)
+    message = serializers.CharField(max_length=255)
+    is_public = serializers.BooleanField(required=False, allow_null=True)
+
+
 # update_post
 class UpdatePostSerializer(serializers.Serializer):
     title = serializers.CharField(max_length=100)
@@ -50,6 +57,10 @@ class UpdateUserSerializer(serializers.Serializer):
 # update_comment
 class UpdateCommentSerializer(serializers.Serializer):
     content = serializers.CharField(max_length=255)
+
+# update_notification
+class UpdateNotificationSerializer(serializers.Serializer):
+    message = serializers.CharField(max_length=255)
 
 # update_media
 class UpdateAvatarSerializer(serializers.Serializer):

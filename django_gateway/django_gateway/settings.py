@@ -57,7 +57,6 @@ ROOT_URLCONF = 'django_gateway.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
         'DIRS': [BASE_DIR / "templates"],
         'APP_DIRS': True,
         'OPTIONS': {
@@ -107,7 +106,6 @@ USE_TZ = True
 
 
 # Static files (CSS, JavaScript, Images)
-STATIC_URL = 'static/'
 STATIC_URL = '/static/'
 STATICFILES_DIRS = [
     BASE_DIR / "static",
@@ -123,3 +121,4 @@ USER_SERVICE_URL = "http://user_service:8000"
 POST_SERVICE_URL = "http://post_service:8000"
 COMMENT_SERVICE_URL = "http://comment_service:8000"
 MEDIA_SERVICE_URL = "http://media_service:8000"
+NOTIFICATIONS_SERVICE = "http://notification_service:8000"

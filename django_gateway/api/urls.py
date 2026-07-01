@@ -23,6 +23,10 @@ urlpatterns = [
     path("comments/update/<int:comment_id>", views.update_comment),
     path("comments/delete/<int:comment_id>", views.delete_comment),
 
+    # notifications urls
+    path("notifications/",views.read_my_notifications),
+    path("notifications/<int:notification_id>", views.read_notification),
+
     # avatar urls
     path("avatar/id=<owner_id>", views.read_avatar),
     path("avatar/set_default", views.set_default),
@@ -49,9 +53,11 @@ urlpatterns = [
     path("settings/verify/<str:token>", views.verify_email),
 
     # admin panel urls
-    path("admin_panel/create_admin", views.create_admin),
-    path("admin_panel/delete_user/<int:user_id>", views.admin_delete_user),
+    path("admin_panel/notifications", views.read_admin_notifications),
+    path("admin_panel/create_notification", views.create_notification),
     path("admin_panel/update_user/<int:user_id>", views.admin_update_user),
+    path("admin_panel/update_notification/<int:notification_id>", views.admin_update_notification),
     path("admin_panel/delete_user/<int:user_id>", views.admin_delete_user),
     path("admin_panel/delete_post/<int:post_id>", views.admin_delete_post),
+    path("admin_panel/delete_notification/<int:notification_id>", views.admin_delete_notification),
 ]
