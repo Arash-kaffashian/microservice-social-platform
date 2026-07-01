@@ -26,11 +26,13 @@ def get_post(db: Session, post_id: int):
     return db.query(models.Post).filter(models.Post.id == post_id).first()
 
 # create one post and commit it to db
-def create_post(db: Session, post: schemas.PostCreate, user:int):
+def create_post(db: Session, post: schemas.PostCreate, owner_id:int, nickname:str):
     db_post = models.Post(
         title=post.title,
         content=post.content,
-        owner_id=user,
+        owner_id=owner_id,
+        owner_nickname=nickname,
+        media_urls=post.media_urls
     )
     db.add(db_post)
     db.commit()
