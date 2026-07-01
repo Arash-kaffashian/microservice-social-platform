@@ -91,11 +91,13 @@ async def delete_self(
 # Update own account
 @router.patch("/me", dependencies=[rate_limit.rate_limit(limit=20, window=60)], response_model=schemas.ProfileUserResponse)
 def update_self(
+async def update_self(
     patch: schemas.UpdateUserRequest,
     current_user: schemas.UserResponse = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
     db_user = user_crud.update_user(db, current_user.id, patch)
+    db_user = await user_service.update_user(db, current_user.id, patch)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")
     return db_user
