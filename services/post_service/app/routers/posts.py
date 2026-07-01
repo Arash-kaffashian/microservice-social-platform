@@ -31,9 +31,10 @@ def read_post(post_id: int, db: Session = Depends(database.get_db)):
 
 # create my post
 @router.post("/posts", dependencies=[Depends(dependencies.get_current_user), Depends(dependencies.verified_user_required)], response_model=schemas.PostResponse)
-def create_post(post: schemas.PostCreate, db: Session = Depends(database.get_db), user=Depends(dependencies.get_current_user)):
+async def create_post(post: schemas.PostCreate, db: Session = Depends(database.get_db), user=Depends(dependencies.get_current_user)):
     owner_id = user["user_id"]
-    return crud.create_post(db, post, owner_id)
+    nickname = user["nickname"]
+    return await post_service.create_post(db, post, owner_id, nickname)
 
 # update one of my posts by id
 @router.patch("/posts/{post_id}", response_model=schemas.PostResponse)
