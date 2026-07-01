@@ -2,8 +2,9 @@ FROM my-python:3.11-slim
 
 WORKDIR /app
 
-RUN pip config set global.index-url https://mirror-pypi.runflare.com/simple
-RUN pip config set global.trusted-host mirror-pypi.runflare.com
+# set Liara PyPI mirror
+RUN pip config set global.index-url https://package-mirror.liara.ir/repository/pypi/simple
+RUN pip config set global.trusted-host package-mirror.liara.ir
 
 COPY requirements.txt .
 
