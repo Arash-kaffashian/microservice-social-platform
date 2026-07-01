@@ -71,6 +71,18 @@ def update_comment(db: Session, comment_id, comment: schemas.UpdateComment, user
     db.refresh(db_comment)
     return db_comment
 
+# update one user all comments nickname field
+def update_comments_nickname(db: Session, owner_id: int, new_nickname: str):
+    db.query(models.Comment).filter(
+        models.Comment.owner_id == owner_id
+    ).update(
+        {"nickname": new_nickname},
+        synchronize_session="fetch"
+    )
+
+    db.commit()
+    return True
+
 # delete one comment and all of its replies by id
 def delete_my_comment(db: Session, comment_id: int, owner_id:int):
     db_user = db.query(models.Comment).filter(models.Comment.id == comment_id).first()
