@@ -9,5 +9,5 @@ from ..events.publisher import publish_user_created
 async def create_superadmin(db):
     db_user = admin.create_superadmin(db)
 
-    await publish_user_created(db_user.id)
+    await publish_user_created(db_user.id, db_user.nickname)
     return db_user

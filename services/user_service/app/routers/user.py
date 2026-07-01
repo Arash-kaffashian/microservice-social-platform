@@ -44,18 +44,13 @@ def get_profile(db: Session = Depends(database.get_db), current_user: schemas.Pr
 # create user
 @router.post("/", dependencies=[rate_limit.rate_limit(limit=30, window=3600)], status_code=status.HTTP_201_CREATED, response_model=schemas.UserResponse)
 async def create_user(user: schemas.CreateUserRequest,db: Session = Depends(database.get_db)):
-    db_user = user_crud.get_user_by_username(db, user.username)
-    if db_user:
-        raise HTTPException(status_code=400, detail="this user is already exist")
-    new_user = await user_service.create_user(db, user)
-    return new_user
+    return await user_service.create_user(db, user)
 
 # delete user by id
-@router.delete("/admin/users/{user_id}", dependencies=[rate_limit.rate_limit(limit=20, window=60)], status_code=status.HTTP_200_OK)
+@router.delete("/admin/users/{user_id}", dependencies=[rate_limit.rate_limit(limit=20, window=60), Depends(admin_required)], status_code=status.HTTP_200_OK)
 def admin_delete_user(
     user_id: int,
-    db: Session = Depends(database.get_db),
-    admin: schemas.UserResponse = Depends(admin_required)
+    db: Session = Depends(database.get_db)
 ):
     db_user = user_crud.get_user_by_id(db, user_id)
     if not db_user:
@@ -90,13 +85,11 @@ async def delete_self(
 
 # Update own account
 @router.patch("/me", dependencies=[rate_limit.rate_limit(limit=20, window=60)], response_model=schemas.ProfileUserResponse)
-def update_self(
 async def update_self(
     patch: schemas.UpdateUserRequest,
     current_user: schemas.UserResponse = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    db_user = user_crud.update_user(db, current_user.id, patch)
     db_user = await user_service.update_user(db, current_user.id, patch)
     if not db_user:
         raise HTTPException(status_code=404, detail="User not found")

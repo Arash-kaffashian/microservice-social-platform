@@ -1,4 +1,4 @@
-from fastapi import Depends
+from fastapi import Depends, HTTPException
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from typing import Annotated
@@ -33,6 +33,10 @@ def profile(db: Session, user_id: int):
 
 # register and create new user
 def create_user(db: Session, user: schemas.CreateUserRequest):
+    db_user = db.query(models.User).filter(models.User.username == user.username).first()
+    if db_user:
+        raise HTTPException(status_code=400, detail="user is already registered!")
+
     db_user = models.User(
         username = user.username,
         hashed_password = bcrypt_context.hash(user.password),

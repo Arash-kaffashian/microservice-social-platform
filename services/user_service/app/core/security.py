@@ -28,11 +28,12 @@ def authenticate_user(username: str, password: str, db):
     return user
 
 # create and return access token for login authorization
-def create_access_token(username: str, user_id: int, expire_delta: timedelta, role: str, is_email_verified: bool):
+def create_access_token(username: str, user_id: int, expire_delta: timedelta, role: str, is_email_verified: bool, nickname:str):
     # marking token owner and token expire time in payload
     payload = {
         "sub": username,
         "id": user_id,
+        "nickname":nickname,
         "role": role,
         "is_verified": is_email_verified,
         "exp": datetime.utcnow() + expire_delta

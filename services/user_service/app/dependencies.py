@@ -23,20 +23,48 @@ INTERNAL_TOKEN = config("INTERNAL_SERVICE_TOKEN")
 
 
 # login access permission check
-async def get_current_user(token: str = Depends(oauth2_bearer),db: Session = Depends(get_db)):
+def get_current_user(authorization: str = Header(...)):
+    if not authorization.startswith("Bearer "):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid authorization header"
+        )
+
+    token = authorization.removeprefix("Bearer ")
+
     try:
-        payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
-        user_id: int | None = payload.get("id")
-        if not user_id:
-            raise HTTPException(status_code=401, detail="Invalid token")
+        payload = jwt.decode(
+            token,
+            SECRET_KEY,
+            algorithms=[ALGORITHM]
+        )
     except JWTError:
-        raise HTTPException(status_code=401, detail="Invalid token")
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or expired token"
+        )
 
-    user = db.get(User, user_id)
-    if not user:
-        raise HTTPException(status_code=401, detail="User not found")
+    required_claims = (
+        "id",
+        "sub",
+        "nickname",
+        "role",
+        "is_verified",
+    )
 
-    return user
+    if not all(payload.get(claim) is not None for claim in required_claims):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token payload"
+        )
+
+    return {
+        "user_id": payload["id"],
+        "username": payload["sub"],
+        "nickname": payload["nickname"],
+        "role": payload["role"],
+        "is_email_verified": payload["is_verified"],
+    }
 
 # internal access permission check
 def internal_service_required(x_internal_token: str = Header(...)):

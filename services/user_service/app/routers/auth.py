@@ -42,7 +42,8 @@ async def login_for_access_token(
         user.id,
         timedelta(minutes=20),
         user.role,
-        user.is_email_verified
+        user.is_email_verified,
+        user.nickname
     )
 
     return {
