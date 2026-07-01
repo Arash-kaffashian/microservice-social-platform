@@ -595,7 +595,7 @@ def update_avatar(request):
                 file_obj.content_type
             )
         },
-        timeout=5
+        timeout = 5
     )
 
     try:
@@ -680,7 +680,7 @@ def update_media(request, media_id):
                 file_obj.content_type
             )
         },
-        timeout = 5
+        timeout=5
     )
 
     try:
@@ -1149,7 +1149,6 @@ def admin_update_user(request, user_id):
     try:
         response_data = resp.json()
     except ValueError:  # JSONDecodeError
-        response_data = {"detail": "Invalid response from post service", "text": resp.text}
         response_data = {"detail": "Invalid response from user service", "text": resp.text}
     return Response(response_data, status=resp.status_code)
 
