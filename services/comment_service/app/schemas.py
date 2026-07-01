@@ -28,6 +28,7 @@ class UpdateComment(BaseModel):
 class CommentResponse(BaseModel):
     id:int
     owner_id:int
+    nickname:str
     post_id:int
     content:str
     parent_id:Optional[int] = None

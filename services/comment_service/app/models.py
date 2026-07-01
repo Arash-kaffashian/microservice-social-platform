@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, Text, DateTime, ForeignKey
+from sqlalchemy import Column, Integer, String, Text, DateTime, ForeignKey
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 
@@ -14,8 +14,9 @@ class Comment(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     owner_id = Column(Integer, nullable=False)
+    nickname = Column(String(50), nullable=False)
     post_id = Column(Integer, nullable=False)
-    content = Column(Text, nullable=False)
+    content = Column(Text, nullable=False, max_length=255)
     parent_id = Column(Integer, ForeignKey("comments.id"), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

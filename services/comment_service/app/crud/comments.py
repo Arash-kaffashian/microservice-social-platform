@@ -16,9 +16,10 @@ def read_replies(db: Session, comment_id, skip: int = 0, limit: int = 10):
     return db.query(models.Comment).filter(models.Comment.parent_id == comment_id).offset(skip).limit(limit).all()
 
 # create one comment for one post
-def create_comment(db: Session, comment: schemas.CreateComment, user:int):
+def create_comment(db: Session, comment: schemas.CreateComment, user_id:int, user_nickname:str):
     db_comment = models.Comment(
-        owner_id=user,
+        owner_id=user_id,
+        nickname=user_nickname,
         post_id=comment.post_id,
         content=comment.content,
         parent_id=None,
@@ -40,14 +41,16 @@ def create_reply_comment(db: Session, comment: schemas.CreateReply, user:int):
 
     db_comment = models.Comment(
         owner_id=user,
-        post_id=comment.post_id,
-        content=comment.content,
-        parent_id=comment.parent_id,
+        nickname=user_nickname,
+        post_id=reply.post_id,
+        content=reply.content,
+        parent_id=reply.parent_id,
     )
-    db.add(db_comment)
+    db.add(db_reply)
     db.commit()
-    db.refresh(db_comment)
-    return db_comment
+    db.refresh(db_reply)
+
+    return db_reply, db_comment.owner_id
 
 # update one comment context by id
 def update_comment(db: Session, comment_id, comment: schemas.UpdateComment, user:int):
@@ -88,3 +91,4 @@ def delete_post_comments(db: Session, post_id: int):
       .delete(synchronize_session=False)
 
     db.commit()
+    return True

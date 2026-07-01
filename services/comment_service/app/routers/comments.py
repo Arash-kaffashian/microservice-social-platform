@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter, status
 from sqlalchemy.orm import Session
 
 from .. import schemas, database, dependencies
-from  ..events import consumer
+from  ..services import comments_service
 from ..crud import comments
 
 
@@ -33,13 +33,14 @@ def read_replies(
 
 # create my comment
 @router.post("/comments", response_model=schemas.CommentResponse)
-def create_comment(
+async def create_comment(
         comment: schemas.CreateComment,
         db: Session = Depends(database.get_db),
         user=Depends(dependencies.verified_user_required)
 ):
     owner_id = user["user_id"]
-    return comments.create_comment(db, comment, owner_id)
+    owner_nickname = user["nickname"]
+    return await comments_service.create_comment(db, comment, owner_id, owner_nickname)
 
 # update one comment/reply by id
 @router.patch("/comments/{comment_id}", response_model=schemas.CommentResponse)
@@ -50,6 +51,7 @@ def update_comment(
         user=Depends(dependencies.verified_user_required)
 ):
     owner_id = user["user_id"]
+
     return comments.update_comment(db, comment_id, comment, owner_id)
 
 # delete one comment and its replies by id
