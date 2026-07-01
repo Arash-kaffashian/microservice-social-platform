@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from redis.exceptions import ResponseError
 from decouple import config
+from fastapi_swagger import patch_fastapi
 import redis.asyncio as redis
 import asyncio
 
@@ -16,7 +17,8 @@ from .services.admin_service import create_superadmin
 models.Base.metadata.create_all(bind=database.engine)
 
 # fastapi setting
-app = FastAPI(title="User service")
+app = FastAPI(title="User service",docs_url=None,swagger_ui_oauth2_redirect_url=None)
+patch_fastapi(app)
 
 # middlewares setting
 app.add_middleware(RateLimitMiddleware)

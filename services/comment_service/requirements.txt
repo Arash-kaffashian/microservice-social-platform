@@ -3,6 +3,7 @@ fastapi[standard]
 uvicorn[standard]
 SQLAlchemy==2.0.46
 python-decouple==3.8
+fastapi-swagger
 
 # pydantic
 pydantic==2.8.2

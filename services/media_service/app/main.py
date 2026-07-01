@@ -3,6 +3,7 @@ from fastapi.security import OAuth2PasswordBearer
 from fastapi.staticfiles import StaticFiles
 from decouple import config
 from redis.exceptions import ResponseError
+from fastapi_swagger import patch_fastapi
 import redis.asyncio as redis
 import asyncio
 
@@ -16,7 +17,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 models.Base.metadata.create_all(bind=database.engine)
 
 # FastAPI app config
-app = FastAPI(title="Media Service")
+app = FastAPI(title="Media Service",docs_url=None,swagger_ui_oauth2_redirect_url=None)
+patch_fastapi(app)
 
 app.mount("/media", StaticFiles(directory="media"), name="media")
 

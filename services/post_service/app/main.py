@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.security import OAuth2PasswordBearer
 from redis.exceptions import ResponseError
 from decouple import config
+from fastapi_swagger import patch_fastapi
 import redis.asyncio as redis
 import asyncio
 
@@ -15,6 +16,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/token")
 models.Base.metadata.create_all(bind=database.engine)
 
 app = FastAPI(title="Post Service")
+app = FastAPI(title="Post Service",docs_url=None,swagger_ui_oauth2_redirect_url=None)
+patch_fastapi(app)
 
 app.include_router(posts.router)
 
