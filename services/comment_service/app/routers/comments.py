@@ -63,14 +63,3 @@ def delete_comment(
 ):
     owner_id = user["user_id"]
     return comments.delete_my_comment(db, comment_id, owner_id)
-
-# delete one comment and its replies by post_id
-@router.delete(
-    "/comments/delete/post={post_id}",
-    dependencies=[Depends(dependencies.internal_service_required)],
-    status_code=status.HTTP_200_OK)
-async def delete_post_comments(
-        post_id:int,
-        db: Session = Depends(database.get_db),
-):
-    return await consumer.delete_post_comments(db, post_id)

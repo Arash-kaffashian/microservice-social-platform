@@ -30,16 +30,16 @@ def create_comment(db: Session, comment: schemas.CreateComment, user_id:int, use
     return db_comment
 
 # create one reply for one comment
-def create_reply_comment(db: Session, comment: schemas.CreateReply, user:int):
-    db_reply = db.query(models.Comment).filter(models.Comment.id == comment.parent_id).first()
-    if not db_reply :
+def create_reply_comment(db: Session, reply: schemas.CreateReply, user:int, user_nickname:str):
+    db_comment = db.query(models.Comment).filter(models.Comment.id == reply.parent_id).first()
+    if not db_comment :
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND,
                             detail="Parent comment not found")
-    if not db_reply.post_id == comment.post_id:
+    if not db_comment.post_id == reply.post_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST,
                             detail="reply and comment post_id are not match!")
 
-    db_comment = models.Comment(
+    db_reply = models.Comment(
         owner_id=user,
         nickname=user_nickname,
         post_id=reply.post_id,
