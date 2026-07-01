@@ -52,5 +52,6 @@ urlpatterns = [
     path("admin_panel/create_admin", views.create_admin),
     path("admin_panel/delete_user/<int:user_id>", views.admin_delete_user),
     path("admin_panel/update_user/<int:user_id>", views.admin_update_user),
+    path("admin_panel/delete_user/<int:user_id>", views.admin_delete_user),
     path("admin_panel/delete_post/<int:post_id>", views.admin_delete_post),
 ]
