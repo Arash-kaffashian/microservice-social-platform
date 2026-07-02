@@ -36,7 +36,7 @@ def get_notifications(db: Session, user_id: int, skip: int = 0, limit: int = 20)
     return items, total
 
 # get admin private notifications and all public notifications
-def get_all_notifications(db: Session, user_id: int, skip: int = 0, limit: int = 20,):
+def get_admin_notifications(db: Session, user_id: int, skip: int = 0, limit: int = 20,):
     query = (
         db.query(models.Notification)
         .filter(

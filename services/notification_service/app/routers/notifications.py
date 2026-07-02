@@ -36,13 +36,13 @@ def read_notifications(
 
 # get admin all private and public notifications paginated list
 @router.get("/admin/notifications/", dependencies=[Depends(dependencies.admin_required)], response_model=schemas.PaginatedNotificationResponse)
-def read_notifications(
+def read_admin_notifications(
     skip: int = Query(0, ge=0),
     limit: int = Query(20, ge=1, le=100),
     db: Session = Depends(database.get_db),
     user=Depends(dependencies.get_current_user),
 ):
-    items, total = notifications.get_all_notifications(
+    items, total = notifications.get_admin_notifications(
         db=db,
         user_id=user["user_id"],
         skip=skip,

@@ -51,15 +51,6 @@ class NotificationSchema(BaseModel):
 
     model_config = ConfigDict(from_attributes=True)
 
-# notification (output)
-class NotificationResponse(BaseModel):
-    id:int
-    recipient_id:int
-    type:str
-    is_public:bool
-    created_at:datetime
-    payload:NotificationPayloadData
-
 # pagination meta schema (meta)
 class MetaSchema(BaseModel):
     total: int
