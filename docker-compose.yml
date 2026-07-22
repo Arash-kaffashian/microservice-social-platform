@@ -194,6 +194,61 @@ services:
       timeout: 5s
       retries: 5
 
+  email_service:
+    build: ./services/email_service
+    container_name: email_service
+    command: ["./wait-for-it.sh", "email_db:5432", "--", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    env_file:
+      - ./services/email_service/.env
+    volumes:
+      - ./services/email_service:/app
+    ports:
+      - "8006:8000"
+    depends_on:
+      - email_db
+      - redis
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://email_user:email_pass@email_db:5432/email_db
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/openapi.json"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  email_db:
+    image: postgres:15
+    container_name: email_db
+    restart: always
+    environment:
+      POSTGRES_DB: email_db
+      POSTGRES_USER: email_user
+      POSTGRES_PASSWORD: email_pass
+    volumes:
+      - email_db_data:/var/lib/postgresql/data
+    ports:
+      - "5438:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U email_user -d email_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  email_worker:
+    build: ./services/email_service
+    container_name: email_worker
+    command: >
+      ./wait-for-it.sh redis:6379 --
+      celery -A app.celery_app:celery worker --loglevel=info
+    env_file:
+      - ./services/email_service/.env
+    volumes:
+      - ./services/email_service:/app
+    depends_on:
+      - redis
+      - email_db
+    environment:
+      - DATABASE_URL=postgresql+psycopg2://email_user:email_pass@email_db:5432/email_db
+
   gateway:
     build: ./django_gateway
     ports:
@@ -204,12 +259,15 @@ services:
       COMMENT_SERVICE_URL: http://comment_service:8000
       MEDIA_SERVICE_URL: http://media_service:8000
       NOTIFICATIONS_SERVICE_URL: http://notification_service:8000
+      EMAIL_SERVICE_URL: http://email_service:8000
     volumes:
       - ./django_gateway:/app
     depends_on:
       - user_service
       - post_service
       - media_service
+      - notification_service
+      - email_service
       - redis
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/"]
@@ -233,3 +291,4 @@ volumes:
   comment_db_data:
   media_db_data:
   notification_db_data:
+  email_db_data:

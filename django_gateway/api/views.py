@@ -1,4 +1,5 @@
 from django.conf import settings
+from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes, parser_classes
 from rest_framework.parsers import MultiPartParser, FormParser
 from rest_framework.permissions import AllowAny
@@ -19,6 +20,7 @@ POST_SERVICE_URL = config("POST_SERVICE_URL")
 COMMENT_SERVICE_URL = config("COMMENT_SERVICE_URL")
 MEDIA_SERVICE_URL = config("MEDIA_SERVICE_URL")
 NOTIFICATIONS_SERVICE_URL = config("NOTIFICATIONS_SERVICE_URL")
+EMAIL_SERVICE_URL = config("EMAIL_SERVICE_URL")
 
 # internal_service_token config
 INTERNAL_SERVICE_TOKEN = config("INTERNAL_SERVICE_TOKEN")
@@ -449,7 +451,6 @@ def delete_comment(request, comment_id):
 # get my notifications
 @api_view(["GET"])
 def read_my_notifications(request):
-    url = f"{settings.NOTIFICATIONS_SERVICE}/notifications/"
     url = f"{settings.NOTIFICATIONS_SERVICE_URL}/notifications/"
 
     token = request.session.get("access_token")
@@ -824,10 +825,6 @@ def profile(request):
 def create_user(request):
     url = f"{USER_SERVICE_URL}/users/"
 
-    token = request.session.get("access_token")
-    if not token:
-        return Response({"detail": "Not logged in"}, status=401)
-
     serializer = serializers.CreateUserSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
@@ -896,7 +893,10 @@ def update_profile(request):
     if 'image' in payload:
         del payload['image']
 
-    headers = {"Authorization": f"Bearer {token}"}
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "X-Internal-Token": INTERNAL_SERVICE_TOKEN
+    }
 
     # update avatar image if it"s exist
     if "image" in request.FILES:
@@ -929,9 +929,53 @@ def update_profile(request):
     try:
         response_data = resp.json()
     except ValueError:
-        response_data = {"detail": "Invalid response from user service", "text": resp.text}
+        return Response(
+            {
+                "detail": "Invalid response from user service",
+                "text": resp.text
+            },
+            status=resp.status_code
+        )
 
-    return Response(response_data, status=resp.status_code)
+    if resp.status_code >= 400:
+        return Response(
+            response_data,
+            status=resp.status_code
+        )
+
+    # refresh jwt token if any parameter changed
+    jwt_fields_changed = any(
+        field in payload
+        for field in ["nickname"]
+    )
+
+    if jwt_fields_changed:
+        refresh_resp = requests.post(
+            f"{USER_SERVICE_URL}/auth/refresh-user-token/",
+            headers=headers,
+            timeout=5
+        )
+
+        try:
+            refresh_data = refresh_resp.json()
+            new_access_token = refresh_data["access_token"]
+
+        except (ValueError, KeyError):
+            return Response(
+                {
+                    "detail": "Failed to refresh access token",
+                    "text": refresh_resp.text
+                },
+                status=status.HTTP_502_BAD_GATEWAY
+            )
+
+        # save new access token in to user session
+        request.session["access_token"] = new_access_token
+
+    return Response(
+        response_data,
+        status=resp.status_code
+    )
 
 
 
@@ -944,36 +988,55 @@ def change_email(request):
 
     token = request.session.get("access_token")
     if not token:
-        return Response({"detail": "Not logged in"}, status=401)
+        return Response(
+            {"detail": "Not logged in"},
+            status=status.HTTP_401_UNAUTHORIZED
+        )
 
     serializer = serializers.EmailSerializer(data=request.data)
     serializer.is_valid(raise_exception=True)
 
     headers = {
-        "Authorization": f"Bearer {token}"
+        "Authorization": f"Bearer {token}",
+        "X-Internal-Token": INTERNAL_SERVICE_TOKEN,
     }
 
+    # Send change-email request to user service
     resp = requests.post(
         url,
         json=serializer.validated_data,
         headers=headers,
         timeout=5
     )
-    if resp.status_code != 200:
-        return Response(resp.json(), status=resp.status_code)
-    return Response({"message": "your email successfully changed please check your email to verify it!"})
+
+    if resp.status_code != status.HTTP_200_OK:
+        return Response(
+            resp.json(),
+            status=resp.status_code
+        )
+
+    return Response(
+        {
+            "message": (
+                "Your email change request was successful. "
+                "Please check your new email to verify it."
+            )
+        },
+        status=status.HTTP_200_OK
+    )
 
 # resend verification link to my email
 @api_view(["GET"])
 def resend_verify(request):
-    url = f"{USER_SERVICE_URL}/settings/resend-verify/"
+    url = f"{EMAIL_SERVICE_URL}/emails/resend-verify/"
 
     token = request.session.get("access_token")
     if not token:
         return Response({"detail": "Not logged in"}, status=401)
 
     headers = {
-        "Authorization": f"Bearer {token}"
+        "Authorization": f"Bearer {token}",
+        "X-Internal-Token": INTERNAL_SERVICE_TOKEN
     }
 
     resp = requests.post(
@@ -989,20 +1052,50 @@ def resend_verify(request):
 # verify verification link trigger
 @api_view(["get"])
 def verify_email(request, token):
-    url = f"{USER_SERVICE_URL}/settings/verify?token={token}/"
-
-    headers = {
-        "Authorization": f"Bearer {token}"
-    }
+    url = f"{EMAIL_SERVICE_URL}/emails/verify/"
 
     resp = requests.get(
         url,
-        headers=headers,
+        params={"token": token},
         timeout=5
     )
     if resp.status_code != 200:
         return Response(resp.json(), status=resp.status_code)
-    return Response({"message": "your email verified!"})
+
+    # get current access token from session
+    access_token = request.session.get("access_token")
+
+    # If user is logged in, refresh their token
+    if access_token:
+
+        headers = {
+            "Authorization": f"Bearer {access_token}",
+            "X-Internal-Token": INTERNAL_SERVICE_TOKEN
+        }
+
+        refresh_resp = requests.post(
+            f"{USER_SERVICE_URL}/auth/refresh-user-token/",
+            headers=headers,
+            timeout=5
+        )
+
+        if refresh_resp.status_code != 200:
+            return Response(
+                {
+                    "message": "Email verified, but access token could not be refreshed"
+                },
+                status=200
+            )
+
+        # save new access token in user session
+        request.session["access_token"] = (
+            refresh_resp.json()["access_token"]
+        )
+
+    return Response(
+        {"message": "Your email verified successfully!"},
+        status=200
+    )
 
 
 
