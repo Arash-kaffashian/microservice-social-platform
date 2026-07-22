@@ -444,11 +444,13 @@ def delete_comment(request, comment_id):
     return Response(response_data, status=resp.status_code)
 
 
+
 """ notification views """
 # get my notifications
 @api_view(["GET"])
 def read_my_notifications(request):
     url = f"{settings.NOTIFICATIONS_SERVICE}/notifications/"
+    url = f"{settings.NOTIFICATIONS_SERVICE_URL}/notifications/"
 
     token = request.session.get("access_token")
     if not token:
@@ -479,7 +481,7 @@ def read_my_notifications(request):
 # get one of my notification
 @api_view(["GET"])
 def read_notification(request, notification_id):
-    url = f"{settings.NOTIFICATIONS_SERVICE}/notifications/{notification_id}/"
+    url = f"{settings.NOTIFICATIONS_SERVICE_URL}/notifications/{notification_id}/"
 
     token = request.session.get("access_token")
     if not token:
@@ -1008,7 +1010,7 @@ def verify_email(request, token):
 # get admin notifications
 @api_view(["GET"])
 def read_admin_notifications(request):
-    url = f"{settings.NOTIFICATIONS_SERVICE}/admin/notifications/"
+    url = f"{settings.NOTIFICATIONS_SERVICE_URL}/admin/notifications/"
 
     token = request.session.get("access_token")
     if not token:
