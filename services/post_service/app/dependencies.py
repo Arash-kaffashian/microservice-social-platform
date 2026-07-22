@@ -1,4 +1,4 @@
-from fastapi import HTTPException, Header, Depends
+from fastapi import HTTPException, Header, Depends, status
 from jose import JWTError, jwt
 from decouple import config
 

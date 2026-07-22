@@ -12,7 +12,7 @@ class Post(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String(50), nullable=False)
-    content = Column(Text, nullable=False, max_length=255)
+    content = Column(Text, nullable=False)
     owner_id = Column(Integer, nullable=False)
     owner_nickname = Column(String(50), nullable=False)
     media_urls = Column(ARRAY(String), nullable=True)

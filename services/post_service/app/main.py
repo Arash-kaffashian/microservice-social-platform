@@ -25,7 +25,7 @@ r = redis.Redis(host=config("HOST"), port=config("PORT"), decode_responses=True)
 
 # Ensure the Redis Stream consumer group exists before starting the consumer
 async def ensure_groups():
-    streams = ["user_events", "media_events", "post_events", "comment_events"]
+    streams = ["user_events", "media_events", "comment_events"]
 
     for stream in streams:
         try:
