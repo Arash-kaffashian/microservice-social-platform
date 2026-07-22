@@ -1,9 +1,11 @@
+from sqlalchemy.orm import Session
+from fastapi import HTTPException
 from datetime import timedelta, datetime
 from passlib.context import CryptContext
 from decouple import config
 from jose import jwt
 
-from ..models import User
+from .. import models
 
 
 """ authentication and authorization definitions"""
@@ -19,7 +21,7 @@ bcrypt_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 # check user username and password for login
 def authenticate_user(username: str, password: str, db):
-    user = db.query(User).filter(User.username == username).first()
+    user = db.query(models.User).filter(models.User.username == username).first()
     if not user:
         return None
     # check the hashed received password with database hashed password
@@ -28,17 +30,39 @@ def authenticate_user(username: str, password: str, db):
     return user
 
 # create and return access token for login authorization
-def create_access_token(username: str, user_id: int, expire_delta: timedelta, role: str, is_email_verified: bool, nickname:str):
-    # marking token owner and token expire time in payload
-    payload = {
-        "sub": username,
-        "id": user_id,
-        "nickname":nickname,
-        "role": role,
-        "is_verified": is_email_verified,
-        "exp": datetime.utcnow() + expire_delta
-    }
+def create_access_token(data: dict, expire_delta: timedelta):
+    payload = data.copy()
+    payload["exp"] = datetime.utcnow() + expire_delta
+
     return jwt.encode(payload, SECRET_KEY, algorithm=ALGORITHM)
+
+# recreate and return new access token
+def refresh_user_access_token(db: Session, user_id: int):
+
+    user = (
+        db.query(models.User)
+        .filter(models.User.id == user_id)
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=404,
+            detail="User not found"
+        )
+
+    token_data = {
+        "id": user.id,
+        "sub": user.username,
+        "nickname": user.nickname,
+        "role": user.role,
+        "is_verified": user.is_email_verified,
+    }
+
+    return create_access_token(
+        data=token_data,
+        expire_delta=timedelta(minutes=60)
+    )
 
 # encrypting normal password into hashed password
 def hash_password(password: str):

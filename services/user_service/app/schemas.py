@@ -20,10 +20,6 @@ class UpdateUserRequest(BaseModel):
 class ChangeEmailRequest(BaseModel):
     new_email: EmailStr
 
-# verify email(input)
-class VerifyEmailRequest(BaseModel):
-    token: str
-
 # change password(input)
 class ChangePasswordRequest(BaseModel):
     current_password: str
@@ -64,6 +60,7 @@ class PublicUserResponse(BaseModel):
     id : int
     nickname: str
     image_url: Optional[str] = None
+    email: str
 
     model_config = ConfigDict(from_attributes=True)
 

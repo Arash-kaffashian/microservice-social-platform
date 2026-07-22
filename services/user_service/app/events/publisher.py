@@ -18,13 +18,14 @@ async def publish_user_deleted(user_id: int):
     )
 
 # publish redis stream user_created events
-async def publish_user_created(user_id: int, nickname):
+async def publish_user_created(user_id: int, nickname: str, email: str):
     await r.xadd(
         "user_events",
         {
             "event": "user_created",
             "user_id": int(user_id),
             "nickname": str(nickname),
+            "email": str(email)
         }
     )
 
@@ -36,5 +37,16 @@ async def publish_user_updated(user_id: int, nickname):
             "event": "user_updated",
             "user_id": int(user_id),
             "nickname": str(nickname),
+        }
+    )
+
+# publish redis stream change_email_request events
+async def publish_change_email_request(user_id: int, pending_email: str):
+    await r.xadd(
+        "user_events",
+        {
+            "event": "change_email_request",
+            "user_id": int(user_id),
+            "pending_email": str(pending_email),
         }
     )

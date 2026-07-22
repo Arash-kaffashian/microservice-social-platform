@@ -1,10 +1,10 @@
 from fastapi import Depends, HTTPException
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 from passlib.context import CryptContext
 from typing import Annotated
 
 from .. import models, schemas, database
-from ..core.email import request_email_change
 
 
 """ users crud """
@@ -48,23 +48,13 @@ def create_user(db: Session, user: schemas.CreateUserRequest):
     db.commit()
     db.refresh(db_user)
 
-    # send email verification to user email
-    try:
-        request_email_change(
-            db=db,
-            user_id=db_user.id,
-            new_email=db_user.email
-        )
-    except Exception as e:
-        print("Email sending failed:", e)
-
     return db_user
 
 # update some user fields by id
 def update_user(db: Session, user_id: int, patch: schemas.UpdateUserRequest):
     db_user = db.query(models.User).filter(models.User.id == user_id).first()
     if not db_user:
-        return None
+        raise HTTPException(status_code=404, detail="user not found!")
 
     # detect and update every object that writen in body and only them
     for field, value in patch.dict(exclude_unset=True).items():
@@ -73,6 +63,47 @@ def update_user(db: Session, user_id: int, patch: schemas.UpdateUserRequest):
     db.commit()
     db.refresh(db_user)
     return db_user
+
+# update pending_email field
+def change_email(db: Session, user_id: int, pending_email: str):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="user not found!")
+
+    if db_user.email == pending_email:
+        raise HTTPException(400, "This is already your current email")
+
+    db_email = (
+        db.query(models.User)
+        .filter(
+            models.User.id != user_id,
+            or_(
+                models.User.email == pending_email,
+                models.User.pending_email == pending_email,
+            )
+        )
+        .first()
+    )
+
+    if db_email:
+        raise HTTPException(status_code=409, detail="there is already an account with that email!")
+
+    db_user.pending_email = pending_email
+    db.commit()
+
+    return db_user
+
+# update verified email field
+def verify_email(db: Session, user_id: int, email: str):
+    db_user = db.query(models.User).filter(models.User.id == user_id).first()
+    if not db_user:
+        raise HTTPException(status_code=404, detail="user not found!")
+
+    db_user.email = email
+    db_user.is_email_verified = True
+    db.commit()
+
+    return {"details": "user verified email changed successfully"}
 
 # delete user by id
 def delete_user(db: Session, user_id: int) -> bool:
