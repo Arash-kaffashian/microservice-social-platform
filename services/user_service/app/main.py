@@ -6,7 +6,7 @@ import redis.asyncio as redis
 import asyncio
 
 from .middleware.rate_limit import RateLimitMiddleware
-from .events.consumer import consume_avatar_updated
+from .events.consumer import consume_avatar_events, consume_email_events
 from . import models, database
 from .routers import auth, user, account, admin
 from .database import SessionLocal
@@ -42,19 +42,22 @@ r = redis.Redis(host=config("HOST"), port=config("PORT"), decode_responses=True)
 
 # Ensure the Redis Stream consumer group exists before starting the consumer
 async def ensure_group():
-    try:
-        await r.xgroup_create(
-            name="media_events",
-            groupname="user_group",
-            id="0",
-            mkstream=True
-        )
-        print("Consumer group created!")
-    except ResponseError as e:
-        if "BUSYGROUP" in str(e):
-            print("Consumer group already exists")
-        else:
-            raise
+    streams = ["notification_events", "email_events", "media_events", "comment_events", "post_events"]
+
+    for stream in streams:
+        try:
+            await r.xgroup_create(
+                name=stream,
+                groupname="user_group",
+                id="0",
+                mkstream=True
+            )
+            print(f"Consumer group created for {stream}")
+        except ResponseError as e:
+            if "BUSYGROUP" in str(e):
+                print(f"Consumer group already exists for {stream}")
+            else:
+                raise
 
 # superadmin create or promote on startup / redis group Ensure
 @app.on_event("startup")
@@ -70,4 +73,5 @@ async def startup_event():
     await ensure_group()
 
     # Start consumer in background
-    asyncio.create_task(consume_avatar_updated())
+    asyncio.create_task(consume_avatar_events())
+    asyncio.create_task(consume_email_events())

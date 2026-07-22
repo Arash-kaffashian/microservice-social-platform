@@ -90,7 +90,4 @@ async def update_self(
     current_user: schemas.UserResponse = Depends(get_current_user),
     db: Session = Depends(database.get_db)
 ):
-    db_user = await user_service.update_user(db, current_user.id, patch)
-    if not db_user:
-        raise HTTPException(status_code=404, detail="User not found")
-    return db_user
+    return await user_service.update_user(db, current_user["user_id"], patch)
